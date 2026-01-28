@@ -6,7 +6,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-func Test_SwaggerPathToRegex_Static(t *testing.T) {
+func TestSwaggerPathToRegex_Static(t *testing.T) {
 	re := swaggerPathToRegex("/v1/health")
 
 	ok := []string{"/v1/health", "/v1/health/"}
@@ -24,7 +24,7 @@ func Test_SwaggerPathToRegex_Static(t *testing.T) {
 	}
 }
 
-func Test_SwaggerPathToRegex_Param(t *testing.T) {
+func TestSwaggerPathToRegex_Param(t *testing.T) {
 	re := swaggerPathToRegex("/users/{id}")
 
 	if !re.MatchString("/users/123") {
@@ -35,7 +35,7 @@ func Test_SwaggerPathToRegex_Param(t *testing.T) {
 	}
 }
 
-func Test_SwaggerPathToSampleName(t *testing.T) {
+func TestSwaggerPathToSampleName(t *testing.T) {
 	got := swaggerPathToSampleName("get", "/users/{id}")
 	want := "GET__users_{id}.json"
 	if got != want {
@@ -43,7 +43,7 @@ func Test_SwaggerPathToSampleName(t *testing.T) {
 	}
 }
 
-func Test_FindRoute(t *testing.T) {
+func TestFindRoute(t *testing.T) {
 	routes := []Route{
 		{Method: "GET", Swagger: "/users/{id}", Regex: swaggerPathToRegex("/users/{id}"), SampleFile: "GET__users_{id}.json"},
 		{Method: "POST", Swagger: "/users", Regex: swaggerPathToRegex("/users"), SampleFile: "POST__users.json"},
@@ -59,7 +59,7 @@ func Test_FindRoute(t *testing.T) {
 	}
 }
 
-func Test_BuildRoutes(t *testing.T) {
+func TestBuildRoutes(t *testing.T) {
 	doc := &openapi3.T{
 		Paths: &openapi3.Paths{},
 	}
@@ -97,7 +97,7 @@ func Test_BuildRoutes(t *testing.T) {
 	}
 }
 
-func Test_BuildRoutes_NilGuards(t *testing.T) {
+func TestBuildRoutes_NilGuards(t *testing.T) {
 	if got := BuildRoutes(nil); got != nil {
 		t.Fatalf("expected nil, got %#v", got)
 	}

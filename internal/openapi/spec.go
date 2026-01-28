@@ -100,7 +100,7 @@ func TryGetExampleBody(spec *Spec, swaggerPath, method string) ([]byte, bool) {
 }
 
 func findOperation(spec *Spec, swaggerPath, method string) *openapi3.Operation {
-	if spec == nil || spec.Doc3 == nil || spec.Doc3.Paths == nil {
+	if spec == nil || spec.Doc3 == nil {
 		return nil
 	}
 	item := spec.Doc3.Paths.Find(swaggerPath)
