@@ -2,13 +2,15 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/ozgen/openapi-sample-emulator/config"
 	"github.com/ozgen/openapi-sample-emulator/internal/openapi"
 	"github.com/ozgen/openapi-sample-emulator/internal/samples"
 	"github.com/ozgen/openapi-sample-emulator/logger"
 	"github.com/ozgen/openapi-sample-emulator/utils"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type Config struct {
@@ -46,9 +48,25 @@ func (s *Server) ListenAndServe() error {
 	mux.HandleFunc("/", s.handle)
 
 	addr := "0.0.0.0:" + s.cfg.Port
+
 	s.log.Printf("mock listening on %s", addr)
-	s.log.Printf("spec=%s samples=%s fallback=%s", s.cfg.SpecPath, s.cfg.SamplesDir, s.cfg.FallbackMode)
-	return http.ListenAndServe(addr, mux)
+	s.log.Printf(
+		"spec=%s samples=%s fallback=%s",
+		s.cfg.SpecPath,
+		s.cfg.SamplesDir,
+		s.cfg.FallbackMode,
+	)
+
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	return server.ListenAndServe()
 }
 
 func (s *Server) handle(w http.ResponseWriter, r *http.Request) {

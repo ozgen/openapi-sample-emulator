@@ -32,7 +32,8 @@ func Load(dir, fileName string) (*Response, error) {
 
 	// Try envelope parse
 	var env Envelope
-	if err := json.Unmarshal([]byte(raw), &env); err == nil && (env.Status != 0 || env.Headers != nil || env.Body != nil) {
+	if err := json.Unmarshal([]byte(raw), &env); err == nil &&
+		(env.Status != 0 || env.Headers != nil || env.Body != nil) {
 		if env.Status == 0 {
 			env.Status = 200
 		}

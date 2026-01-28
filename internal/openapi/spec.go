@@ -14,7 +14,8 @@ type Spec struct {
 	Produces    []string                  `json:"produces"`
 	Paths       map[string]map[string]any `json:"paths"`
 	Definitions map[string]map[string]any `json:"definitions"` // Swagger 2.0
-	Components  map[string]any            `json:"components"`  // OpenAPI 3.x (not required for Swagger2)
+	Components  map[string]any            `json:"components"`
+	// OpenAPI 3.x (not required for Swagger2)
 }
 
 // LoadSpec reads swagger.json/openapi.json and parses minimal fields we need.

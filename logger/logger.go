@@ -2,11 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"github.com/ozgen/openapi-sample-emulator/config"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/ozgen/openapi-sample-emulator/config"
 
 	"github.com/sirupsen/logrus"
 )
