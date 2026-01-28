@@ -47,12 +47,16 @@ test:
 		go test -v $$pkg || exit 1; \
 	done
 
+MODULE := github.com/ozgen/openapi-sample-emulator
+COVER_EXCLUDES := '(^$(MODULE)/cmd$$|^$(MODULE)$$|/(cmd|logger|examples)(/|$$))'
+
 .PHONY: cover
 cover:
-	@go test ./... -coverprofile=coverage.out -covermode=atomic
-	@go tool cover -func=coverage.out | grep 'total:' | awk '{print $$3}'
+	@echo "Running tests with coverage..."
+	@go test -tags=testcover -coverprofile=coverage.out -covermode=atomic $(shell go list ./... | grep -vE $(COVER_EXCLUDES))
+	@echo "==> Average coverage:"
+	@go tool cover -func=coverage.out | tee coverage.txt | grep 'total:' | awk '{print $$3}'
 	@go tool cover -html=coverage.out -o coverage.html
-	@echo "Wrote coverage.html"
 
 .PHONY: format
 format:
