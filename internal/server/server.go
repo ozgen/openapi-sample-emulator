@@ -7,7 +7,7 @@ import (
 
 	"github.com/ozgen/openapi-sample-emulator/config"
 	"github.com/ozgen/openapi-sample-emulator/internal/openapi"
-	"github.com/ozgen/openapi-sample-emulator/internal/samples"
+	"github.com/ozgen/openapi-sample-emulator/internal/sample"
 	"github.com/ozgen/openapi-sample-emulator/logger"
 	"github.com/ozgen/openapi-sample-emulator/utils"
 	"github.com/sirupsen/logrus"
@@ -105,7 +105,7 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp, err := samples.Load(s.cfg.SamplesDir, rt.SampleFile)
+	resp, err := sample.Load(s.cfg.SamplesDir, rt.SampleFile)
 	if err != nil {
 		if s.cfg.FallbackMode == config.FallbackOpenAPIExample {
 			if body, ok := openapi.TryGetExampleBody(s.spec, rt.Swagger, rt.Method); ok {
