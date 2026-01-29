@@ -96,7 +96,7 @@ Supported spec formats:
 
 OpenAPI 3.x: `requestBody.required: true`
 
-Swagger 2.0: `in: body` parameter with `required: true` (supported via Swagger 2 to OpenAPI 3 conversion using kin-openapi)
+Swagger 2.0: `in: body` parameter with `required: true` (supported via Swagger 2 to OpenAPI 3 conversion using [kin-openapi](https://github.com/getkin/kin-openapi))
 
 ---
 
