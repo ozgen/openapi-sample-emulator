@@ -136,7 +136,7 @@ func TestHandle_SampleMissing_FallbackOpenAPIExample_200(t *testing.T) {
 	s, err := New(Config{
 		Port:           "0",
 		SpecPath:       specPath,
-		SamplesDir:     dir, // empty: no sample files
+		SamplesDir:     dir,
 		FallbackMode:   config.FallbackOpenAPIExample,
 		ValidationMode: config.ValidationRequired,
 		Layout:         config.LayoutFolders,
@@ -169,7 +169,7 @@ func TestHandle_SampleMissing_NoFallback_501(t *testing.T) {
 	s, err := New(Config{
 		Port:           "0",
 		SpecPath:       specPath,
-		SamplesDir:     dir, // empty: no samples
+		SamplesDir:     dir,
 		FallbackMode:   config.FallbackNone,
 		ValidationMode: config.ValidationRequired,
 		Layout:         config.LayoutFolders,
@@ -240,7 +240,7 @@ func newTestServer(t *testing.T, validation config.ValidationMode, fallback conf
 		SamplesDir:     dir,
 		FallbackMode:   fallback,
 		ValidationMode: validation,
-		Layout:         config.LayoutFolders, // deterministic: use folder samples
+		Layout:         config.LayoutFolders,
 	})
 	if err != nil {
 		t.Fatalf("New: %v", err)

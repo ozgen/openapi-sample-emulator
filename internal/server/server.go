@@ -53,7 +53,7 @@ func New(cfg Config) (*Server, error) {
 		log:    logger.GetLogger(),
 
 		flow: NewStateFlow(StateFlowConfig{
-			FlowSpec:        config.Envs.StateFlow,        // e.g. "requested,running*9,succeeded"
+			FlowSpec:        config.Envs.StateFlow,        // e.g. "requested,running*4,succeeded"
 			StepSeconds:     config.Envs.StateStepSeconds, // time-based
 			StepCalls:       config.Envs.StateStepCalls,   // count-based (wins if >0)
 			DefaultStepSecs: 2,
@@ -143,7 +143,6 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Override with body-based state selection
-	// If body contains "start" or "stop", we set state to that token.
 	if len(s.bodyStates) > 0 {
 		body, err := ReadBodyAndRestore(r)
 		if err == nil {
