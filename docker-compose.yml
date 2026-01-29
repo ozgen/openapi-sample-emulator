@@ -14,7 +14,9 @@ services:
       - RUNNING_ENV=${RUNNING_ENV:-docker}
       - DEBUG_ROUTES=${DEBUG_ROUTES:-true}
       - FALLBACK_MODE=openapi_examples
+      - STATE_FLOW=requested,running*4,succeeded
+      - STATE_RESET_ON_LAST=true
     volumes:
 
-      - ./examples/demo:/work:ro
+      - ./examples/openvasd:/work:ro # change the folder path for other examples
     restart: unless-stopped

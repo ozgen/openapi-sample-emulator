@@ -15,12 +15,14 @@ IMAGE_NAME ?= openapi-sample-emulator:local
 # Run config
 HOST ?= 0.0.0.0
 PORT ?= 8086
-SPEC_PATH ?= ./examples/demo/swagger.json
-SAMPLES_DIR ?= ./examples/demo/sample
+SPEC_PATH ?= ./examples/openvasd/swagger.json # change the folder path for other examples
+SAMPLES_DIR ?= ./examples/openvasd/sample
 
 FALLBACK_MODE ?= openapi_examples
 VALIDATION_MODE ?= required
 DEBUG_ROUTES ?= false
+STATE_FLOW?= requested,running*4,succeeded
+STATE_RESET_ON_LAST?= true
 
 .PHONY: all
 all: test build
@@ -38,6 +40,8 @@ run: build
 	FALLBACK_MODE=$(FALLBACK_MODE) \
 	VALIDATION_MODE=$(VALIDATION_MODE) \
 	DEBUG_ROUTES=$(DEBUG_ROUTES) \
+	STATE_FLOW=$(STATE_FLOW) \
+	STATE_RESET_ON_LAST=$(STATE_RESET_ON_LAST) \
 	./$(BIN_DIR)/$(APP_NAME)
 
 .PHONY: test
@@ -87,7 +91,9 @@ docker-run:
 		-e FALLBACK_MODE=$(FALLBACK_MODE) \
 		-e VALIDATION_MODE=$(VALIDATION_MODE) \
 		-e DEBUG_ROUTES=$(DEBUG_ROUTES) \
-		-v "./examples/demo:/work:ro" \
+		-e STATE_FLOW=$(STATE_FLOW) \
+		-e STATE_RESET_ON_LAST=$(STATE_RESET_ON_LAST) \
+		-v "./examples/openvasd:/work:ro" \
 		$(IMAGE_NAME)
 
 .PHONY: compose-up
