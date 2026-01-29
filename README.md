@@ -72,10 +72,10 @@ SAMPLES_DIR/
 
 Examples:
 
-* `GET /api/v1/items` → `api/v1/items/GET.json`
-* `POST /scans` → `scans/POST.json`
-* `GET /scans/{id}` → `scans/{id}/GET.json`
-* Stateful response → `GET.running.json`, `GET.succeeded.json`
+* `GET /api/v1/items` - `api/v1/items/GET.json`
+* `POST /scans`-`scans/POST.json`
+* `GET /scans/{id}`-`scans/{id}/GET.json`
+* Stateful response-`GET.running.json`, `GET.succeeded.json`
 
 Path parameters remain as `{id}`.
 
@@ -91,8 +91,8 @@ METHOD__path_with_slashes_replaced_by_underscores.json
 
 Examples:
 
-* `GET /api/v1/items` → `GET__api_v1_items.json`
-* `GET /scans/{id}/results` → `GET__scans_{id}_results.json`
+* `GET /api/v1/items`-`GET__api_v1_items.json`
+* `GET /scans/{id}/results`-`GET__scans_{id}_results.json`
 
 Use `LAYOUT_MODE=flat` or `LAYOUT_MODE=auto` to enable this.
 
@@ -199,7 +199,7 @@ Supported specs:
 
 * OpenAPI 3.x – `requestBody.required: true`
 * Swagger 2.0 – `in: body` with `required: true`
-  (via Swagger 2 → OpenAPI 3 conversion using
+  (via Swagger 2 to OpenAPI 3 conversion using
   [https://github.com/getkin/kin-openapi](https://github.com/getkin/kin-openapi))
 
 ---

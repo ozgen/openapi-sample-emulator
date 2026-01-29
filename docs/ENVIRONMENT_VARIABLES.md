@@ -41,9 +41,9 @@ SAMPLES_DIR/<path>/<METHOD>[.<state>].json
 
 Examples:
 
-- `GET /api/v1/items` → `api/v1/items/GET.json`
-- `GET /api/v1/items/{id}` → `api/v1/items/{id}/GET.json`
-- Stateful sample → `GET.running.json`
+- `GET /api/v1/items`-`api/v1/items/GET.json`
+- `GET /api/v1/items/{id}`-`api/v1/items/{id}/GET.json`
+- Stateful sample-`GET.running.json`
 
 Legacy flat samples are expected as a single filename (derived from the spec’s route mapping).
 
