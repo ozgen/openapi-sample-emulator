@@ -40,7 +40,7 @@ func ResolveSamplePath(
 				log.WithError(err).Error("failed to load scenario")
 				return "", fmt.Errorf("scenario enabled but engine is nil")
 			}
-			file, _, err := engine.ResolveScenarioFile(scPath, sc, method, swaggerTpl, actualPath)
+			file, _, err := engine.ResolveScenarioFile(sc, method, swaggerTpl, actualPath)
 			if err != nil {
 				log.WithError(err).Error("failed to resolve scenario")
 				return "", fmt.Errorf("scenario resolve: %w", err)

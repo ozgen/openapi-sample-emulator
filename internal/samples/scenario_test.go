@@ -91,7 +91,7 @@ func TestLoadScenario_ValidV1_Time(t *testing.T) {
 	  "version": 1,
 	  "mode": "time",
 	  "key": {"pathParam":"id"},
-	  "timeline": [{"afterMs":0,"state":"ready","file":"t0.json"}],
+	  "timeline": [{"afterSec":0,"state":"ready","file":"t0.json"}],
 	  "behavior": {"repeatLast": true}
 	}`)
 
@@ -153,7 +153,7 @@ func TestScenarioEngine_ResolveScenarioFile_Step_SelectsFirstThenAdvances(t *tes
 	sc.Behavior.AdvanceOn = []MatchRule{{Method: "GET"}}
 	sc.Behavior.RepeatLast = true
 
-	file1, state1, err := e.ResolveScenarioFile("sc.json", sc, "get", "/api/v1/items/{id}", "/api/v1/items/1")
+	file1, state1, err := e.ResolveScenarioFile(sc, "get", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestScenarioEngine_ResolveScenarioFile_Step_SelectsFirstThenAdvances(t *tes
 		t.Fatalf("expected a.json/requested got %q/%q", file1, state1)
 	}
 
-	file2, state2, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	file2, state2, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestScenarioEngine_ResolveScenarioFile_Step_SelectsFirstThenAdvances(t *tes
 		t.Fatalf("expected b.json/running got %q/%q", file2, state2)
 	}
 
-	file3, state3, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	file3, state3, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestScenarioEngine_ResolveScenarioFile_Step_SelectsFirstThenAdvances(t *tes
 		t.Fatalf("expected c.json/done got %q/%q", file3, state3)
 	}
 
-	file4, state4, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	file4, state4, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -199,11 +199,11 @@ func TestScenarioEngine_ResolveScenarioFile_Step_NoAdvanceRule_StaysOnFirst(t *t
 	sc.Behavior.AdvanceOn = nil
 	sc.Behavior.RepeatLast = true
 
-	file1, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/9")
+	file1, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/9")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
-	file2, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/9")
+	file2, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/9")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestScenarioEngine_ResolveScenarioFile_Step_RequiresNonEmptySequence(t *tes
 	sc.Key.PathParam = "id"
 	sc.Sequence = nil
 
-	_, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	_, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -231,12 +231,12 @@ func TestScenarioEngine_ResolveScenarioFile_Time_ChoosesBasedOnElapsed(t *testin
 	sc := &Scenario{Version: 1, Mode: "time"}
 	sc.Key.PathParam = "id"
 	sc.Timeline = []TimelineEntry{
-		{AfterMs: 0, State: "t0", File: "t0.json"},
-		{AfterMs: 20, State: "t20", File: "t20.json"},
+		{AfterSec: 0, State: "t0", File: "t0.json"},
+		{AfterSec: 1, State: "t20", File: "t20.json"},
 	}
 	sc.Behavior.RepeatLast = true
 
-	file1, state1, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
+	file1, state1, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -244,9 +244,9 @@ func TestScenarioEngine_ResolveScenarioFile_Time_ChoosesBasedOnElapsed(t *testin
 		t.Fatalf("expected t0.json/t0 got %q/%q", file1, state1)
 	}
 
-	time.Sleep(30 * time.Millisecond)
+	time.Sleep(1100 * time.Millisecond)
 
-	file2, state2, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
+	file2, state2, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestScenarioEngine_ResolveScenarioFile_Time_RequiresNonEmptyTimeline(t *tes
 	sc.Key.PathParam = "id"
 	sc.Timeline = nil
 
-	_, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	_, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -281,18 +281,18 @@ func TestScenarioEngine_ResolveScenarioFile_ResetOn_ClearsState(t *testing.T) {
 	sc.Behavior.ResetOn = []MatchRule{{Method: "POST", Path: "/api/v1/items/{id}"}}
 	sc.Behavior.RepeatLast = true
 
-	_, _, _ = e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
-	file2, _, _ := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	_, _, _ = e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	file2, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if file2 != "b.json" {
 		t.Fatalf("expected b.json after advancing, got %q", file2)
 	}
 
-	_, _, err := e.ResolveScenarioFile("sc.json", sc, "POST", "/api/v1/items/{id}", "/api/v1/items/1")
+	_, _, err := e.ResolveScenarioFile(sc, "POST", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile(POST reset): %v", err)
 	}
 
-	fileAfterReset, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	fileAfterReset, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
 	if err != nil {
 		t.Fatalf("ResolveScenarioFile(after reset): %v", err)
 	}
@@ -309,9 +309,83 @@ func TestScenarioEngine_ResolveScenarioFile_KeyExtractionError(t *testing.T) {
 	sc.Sequence = []ScenarioEntry{{State: "s1", File: "a.json"}}
 	sc.Behavior.RepeatLast = true
 
-	_, _, err := e.ResolveScenarioFile("sc.json", sc, "GET", "/api/v1/items/{id}", "/api/v1/items")
+	_, _, err := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items")
 	if err == nil {
 		t.Fatalf("expected error")
+	}
+}
+
+func TestScenarioEngine_ResolveScenarioFile_Step_Loop_WrapsToFirst(t *testing.T) {
+	e := NewScenarioEngine()
+
+	sc := &Scenario{Version: 1, Mode: "step"}
+	sc.Key.PathParam = "id"
+	sc.Sequence = []ScenarioEntry{
+		{State: "s1", File: "a.json"},
+		{State: "s2", File: "b.json"},
+	}
+	sc.Behavior.AdvanceOn = []MatchRule{{Method: "GET"}}
+	sc.Behavior.Loop = true
+	sc.Behavior.RepeatLast = true
+
+	f1, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	f2, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	f3, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+
+	if f1 != "a.json" || f2 != "b.json" || f3 != "a.json" {
+		t.Fatalf("expected a,b,a got %q,%q,%q", f1, f2, f3)
+	}
+}
+
+func TestScenarioEngine_StateIsolation_ByID(t *testing.T) {
+	e := NewScenarioEngine()
+
+	sc := &Scenario{Version: 1, Mode: "step"}
+	sc.Key.PathParam = "id"
+	sc.Sequence = []ScenarioEntry{
+		{State: "s1", File: "a.json"},
+		{State: "s2", File: "b.json"},
+	}
+	sc.Behavior.AdvanceOn = []MatchRule{{Method: "GET"}}
+	sc.Behavior.RepeatLast = true
+
+	_, _, _ = e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+	f1b, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/1")
+
+	f2a, _, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/2")
+
+	if f1b != "b.json" {
+		t.Fatalf("expected id=1 to be b.json, got %q", f1b)
+	}
+	if f2a != "a.json" {
+		t.Fatalf("expected id=2 to be a.json, got %q", f2a)
+	}
+}
+
+func TestScenarioEngine_Time_RepeatLast_SticksToLast(t *testing.T) {
+	e := NewScenarioEngine()
+
+	sc := &Scenario{Version: 1, Mode: "time"}
+	sc.Key.PathParam = "id"
+	sc.Timeline = []TimelineEntry{
+		{AfterSec: 0, State: "t0", File: "t0.json"},
+		{AfterSec: 1, State: "t1", File: "t1.json"},
+	}
+	sc.Behavior.RepeatLast = true
+	sc.Behavior.Loop = false
+
+	_, _, _ = e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
+	time.Sleep(1100 * time.Millisecond)
+
+	f2, s2, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
+	if f2 != "t1.json" || s2 != "t1" {
+		t.Fatalf("expected t1.json/t1 got %q/%q", f2, s2)
+	}
+
+	time.Sleep(1200 * time.Millisecond)
+	f3, s3, _ := e.ResolveScenarioFile(sc, "GET", "/api/v1/items/{id}", "/api/v1/items/5")
+	if f3 != "t1.json" || s3 != "t1" {
+		t.Fatalf("expected sticky t1.json/t1 got %q/%q", f3, s3)
 	}
 }
 

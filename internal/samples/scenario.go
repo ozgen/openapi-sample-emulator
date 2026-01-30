@@ -15,7 +15,6 @@ import (
 
 type ScenarioResolver interface {
 	ResolveScenarioFile(
-		scenarioPath string,
 		sc *Scenario,
 		method string,
 		swaggerTpl string,
@@ -26,12 +25,16 @@ type ScenarioResolver interface {
 type Scenario struct {
 	Version int    `json:"version"`
 	Mode    string `json:"mode"` // "step" | "time"
-	Key     struct {
+
+	Key struct {
 		PathParam string `json:"pathParam"`
 	} `json:"key"`
 
-	Sequence []ScenarioEntry `json:"sequence,omitempty"` // step mode
-	Timeline []TimelineEntry `json:"timeline,omitempty"` // time mode
+	// step mode
+	Sequence []ScenarioEntry `json:"sequence,omitempty"`
+
+	// time mode
+	Timeline []TimelineEntry `json:"timeline,omitempty"`
 
 	Behavior Behavior `json:"behavior"`
 }
@@ -42,9 +45,9 @@ type ScenarioEntry struct {
 }
 
 type TimelineEntry struct {
-	AfterMs int64  `json:"afterMs"`
-	State   string `json:"state"`
-	File    string `json:"file"`
+	AfterSec int64  `json:"afterSec"`
+	State    string `json:"state"`
+	File     string `json:"file"`
 }
 
 type Behavior struct {
@@ -52,6 +55,7 @@ type Behavior struct {
 	ResetOn    []MatchRule `json:"resetOn,omitempty"`
 	StartOn    []MatchRule `json:"startOn,omitempty"`
 	RepeatLast bool        `json:"repeatLast"`
+	Loop       bool        `json:"loop,omitempty"`
 }
 
 type MatchRule struct {
@@ -59,11 +63,9 @@ type MatchRule struct {
 	Path   string `json:"path,omitempty"`
 }
 
-// ScenarioEngine holds runtime state (in-memory, v1).
+// ScenarioEngine holds runtime state (in-memory).
 type ScenarioEngine struct {
-	mu sync.Mutex
-
-	// per (scenarioFilePath + "::" + keyVal)
+	mu        sync.Mutex
 	stepIndex map[string]int
 	startedAt map[string]time.Time
 	log       *logrus.Logger
@@ -79,36 +81,58 @@ func NewScenarioEngine() *ScenarioEngine {
 
 func LoadScenario(scenarioPath string) (*Scenario, error) {
 	log := logger.GetLogger()
+
 	b, err := os.ReadFile(scenarioPath)
 	if err != nil {
 		return nil, err
 	}
+
 	var sc Scenario
 	if err := json.Unmarshal(b, &sc); err != nil {
-		log.WithError(err).Error("failed to load scenario")
+		log.WithError(err).Error("failed to parse scenario.json")
 		return nil, fmt.Errorf("parse scenario.json: %w", err)
 	}
 
 	if sc.Version != 1 {
-		log.WithField("version", sc.Version).Error("invalid scenario version," +
-			" version should be 1")
+		log.WithField("version", sc.Version).Error("unsupported scenario version")
 		return nil, fmt.Errorf("unsupported scenario version: %d", sc.Version)
 	}
+
 	sc.Mode = strings.TrimSpace(sc.Mode)
 	if sc.Mode != "step" && sc.Mode != "time" {
-		log.WithField("mode", sc.Mode).Errorf("invalid mode :%s", sc.Mode)
+		log.WithField("mode", sc.Mode).Error("invalid scenario mode")
 		return nil, fmt.Errorf("invalid scenario mode: %q", sc.Mode)
 	}
+
 	if strings.TrimSpace(sc.Key.PathParam) == "" {
-		log.WithField("pathParam", sc.Key.PathParam).Error("pathParam is required")
+		log.Error("scenario.key.pathParam is required")
 		return nil, fmt.Errorf("scenario.key.pathParam is required")
+	}
+
+	// validate mode-specific requirements
+	switch sc.Mode {
+	case "step":
+		if len(sc.Sequence) == 0 {
+			log.Error("scenario.sequence is required")
+			return nil, fmt.Errorf("step mode requires non-empty sequence")
+		}
+	case "time":
+		if len(sc.Timeline) == 0 {
+			log.Error("scenario.timeline is required")
+			return nil, fmt.Errorf("time mode requires non-empty timeline")
+		}
+		// ensure sorted
+		for i := 1; i < len(sc.Timeline); i++ {
+			if sc.Timeline[i].AfterSec < sc.Timeline[i-1].AfterSec {
+				return nil, fmt.Errorf("timeline must be sorted by afterMs ascending")
+			}
+		}
 	}
 
 	return &sc, nil
 }
 
 func (e *ScenarioEngine) ResolveScenarioFile(
-	scenarioPath string,
 	sc *Scenario,
 	method string,
 	swaggerTpl string,
@@ -118,39 +142,50 @@ func (e *ScenarioEngine) ResolveScenarioFile(
 
 	keyVal, ok := extractPathParam(swaggerTpl, actualPath, sc.Key.PathParam)
 	if !ok || strings.TrimSpace(keyVal) == "" {
-		e.log.WithError(err).Errorf("failed to resolve path param %q", actualPath)
-		return "", "", fmt.Errorf("cannot extract key path param %q from path %q using template %q",
-			sc.Key.PathParam, actualPath, swaggerTpl)
+		e.log.WithFields(logrus.Fields{
+			"swaggerTpl": swaggerTpl,
+			"actualPath": actualPath,
+			"want":       sc.Key.PathParam,
+		}).Error("failed to extract key path param")
+		return "", "", fmt.Errorf(
+			"cannot extract key path param %q from path %q using template %q",
+			sc.Key.PathParam, actualPath, swaggerTpl,
+		)
 	}
 
-	// apply reset rules (best-effort)
+	k := scenarioRuntimeKey(swaggerTpl, keyVal)
+
 	if matchesAny(sc.Behavior.ResetOn, method, actualPath) {
 		e.mu.Lock()
-		delete(e.stepIndex, scenarioKey(scenarioPath, keyVal))
-		delete(e.startedAt, scenarioKey(scenarioPath, keyVal))
+		delete(e.stepIndex, k)
+		delete(e.startedAt, k)
 		e.mu.Unlock()
+
+		e.log.WithFields(logrus.Fields{
+			"key":        k,
+			"actualPath": actualPath,
+			"method":     method,
+		}).Debug("scenario state reset")
 	}
 
 	switch sc.Mode {
 	case "step":
-		return e.resolveStep(scenarioPath, sc, method, keyVal)
+		return e.resolveStep(k, sc, method)
 	case "time":
-		return e.resolveTime(scenarioPath, sc, method, actualPath, keyVal)
+		return e.resolveTime(k, sc, method, actualPath)
 	default:
-		e.log.WithField("mode", sc.Mode).Errorf("invalid mode :%s", sc.Mode)
 		return "", "", fmt.Errorf("unsupported mode %q", sc.Mode)
 	}
 }
 
-func (e *ScenarioEngine) resolveStep(scenarioPath string, sc *Scenario, method string, keyVal string) (string, string, error) {
+func (e *ScenarioEngine) resolveStep(k string, sc *Scenario, method string) (string, string, error) {
 	if len(sc.Sequence) == 0 {
-		e.log.WithField("path", scenarioPath).Info("no step sequence")
 		return "", "", fmt.Errorf("step mode requires non-empty sequence")
 	}
 
-	k := scenarioKey(scenarioPath, keyVal)
-
 	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	idx := e.stepIndex[k]
 	if idx < 0 {
 		idx = 0
@@ -158,34 +193,35 @@ func (e *ScenarioEngine) resolveStep(scenarioPath string, sc *Scenario, method s
 	if idx >= len(sc.Sequence) {
 		idx = len(sc.Sequence) - 1
 	}
+
 	entry := sc.Sequence[idx]
 
-	// advance AFTER selecting current entry (so 1st GET returns first state)
 	if matchesAny(sc.Behavior.AdvanceOn, method, "") {
 		next := idx + 1
+
 		if next >= len(sc.Sequence) {
-			if sc.Behavior.RepeatLast {
+			switch {
+			case sc.Behavior.Loop:
+				next = 0
+			case sc.Behavior.RepeatLast:
 				next = len(sc.Sequence) - 1
-			} else {
+			default:
 				next = len(sc.Sequence) - 1
 			}
 		}
+
 		e.stepIndex[k] = next
 	} else {
 		e.stepIndex[k] = idx
 	}
-	e.mu.Unlock()
 
 	return entry.File, entry.State, nil
 }
 
-func (e *ScenarioEngine) resolveTime(scenarioPath string, sc *Scenario, method string, actualPath string, keyVal string) (string, string, error) {
+func (e *ScenarioEngine) resolveTime(k string, sc *Scenario, method string, actualPath string) (string, string, error) {
 	if len(sc.Timeline) == 0 {
-		e.log.WithField("path", scenarioPath).Info("no timeline")
 		return "", "", fmt.Errorf("time mode requires non-empty timeline")
 	}
-
-	k := scenarioKey(scenarioPath, keyVal)
 
 	e.mu.Lock()
 	t0, ok := e.startedAt[k]
@@ -198,13 +234,25 @@ func (e *ScenarioEngine) resolveTime(scenarioPath string, sc *Scenario, method s
 			e.startedAt[k] = t0
 		}
 	}
-	elapsed := time.Since(t0)
-	elapsedMs := elapsed.Milliseconds()
+	elapsedSec := int64(time.Since(t0).Seconds())
 	e.mu.Unlock()
+
+	total := sc.Timeline[len(sc.Timeline)-1].AfterSec
+	if total < 0 {
+		total = 0
+	}
+
+	if sc.Behavior.Loop && total > 0 {
+		elapsedSec = elapsedSec % (total + 1)
+	} else if sc.Behavior.RepeatLast && elapsedSec > total {
+		elapsedSec = total
+	} else if elapsedSec > total {
+		elapsedSec = total
+	}
 
 	chosen := sc.Timeline[0]
 	for _, t := range sc.Timeline {
-		if t.AfterMs <= elapsedMs {
+		if t.AfterSec <= elapsedSec {
 			chosen = t
 		} else {
 			break
@@ -214,8 +262,8 @@ func (e *ScenarioEngine) resolveTime(scenarioPath string, sc *Scenario, method s
 	return chosen.File, chosen.State, nil
 }
 
-func scenarioKey(scenarioPath, keyVal string) string {
-	return scenarioPath + "::" + keyVal
+func scenarioRuntimeKey(swaggerTpl, keyVal string) string {
+	return strings.ToUpper(strings.TrimSpace(swaggerTpl)) + "::" + keyVal
 }
 
 func matchesAny(rules []MatchRule, method string, actualPath string) bool {
@@ -235,6 +283,7 @@ func matchesAny(rules []MatchRule, method string, actualPath string) bool {
 	return false
 }
 
+// matchTemplatePath supports "/scans/{id}" matching "/scans/123"
 func matchTemplatePath(tpl, actual string) bool {
 	tplParts := strings.Split(strings.Trim(tpl, "/"), "/")
 	actParts := strings.Split(strings.Trim(actual, "/"), "/")

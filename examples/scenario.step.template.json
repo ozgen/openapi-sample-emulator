@@ -15,6 +15,7 @@
     "resetOn": [
       { "method": "DELETE", "path": "/api/v1/items/{id}" }
     ],
-    "repeatLast": true
+    "repeatLast": true,
+    "loop": true
   }
 }

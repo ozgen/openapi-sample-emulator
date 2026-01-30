@@ -17,7 +17,6 @@ type fakeScenarioEngine struct {
 }
 
 func (f *fakeScenarioEngine) ResolveScenarioFile(
-	scenarioPath string,
 	sc *Scenario,
 	method string,
 	swaggerTpl string,
@@ -26,7 +25,18 @@ func (f *fakeScenarioEngine) ResolveScenarioFile(
 	return f.file, "", f.err
 }
 
-const validScenarioV1 = `{"version":1,"mode": "step", "key": { "pathParam": "id" }}`
+const validScenarioV1 = `{
+  "version": 1,
+  "mode": "step",
+  "key": { "pathParam": "id" },
+  "sequence": [
+    { "state": "requested", "file": "GET.scenario.json" }
+  ],
+  "behavior": {
+    "advanceOn": [{ "method": "GET" }],
+    "repeatLast": true
+  }
+}`
 
 func TestBuildCandidates(t *testing.T) {
 	tests := []struct {
