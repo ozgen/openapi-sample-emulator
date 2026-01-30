@@ -15,12 +15,8 @@ func TestInitConfig_Defaults_AllFields(t *testing.T) {
 	_ = os.Unsetenv("FALLBACK_MODE")
 	_ = os.Unsetenv("DEBUG_ROUTES")
 	_ = os.Unsetenv("LAYOUT_MODE")
-	_ = os.Unsetenv("STATE_FLOW")
-	_ = os.Unsetenv("STATE_STEP_SECONDS")
-	_ = os.Unsetenv("STATE_STEP_CALLS")
-	_ = os.Unsetenv("STATE_ID_PARAM")
-	_ = os.Unsetenv("STATE_RESET_ON_LAST")
-	_ = os.Unsetenv("BODY_STATES")
+	_ = os.Unsetenv("SCENARIO_ENABLED")
+	_ = os.Unsetenv("SCENARIO_FILENAME")
 
 	cfg := initConfig()
 
@@ -52,23 +48,11 @@ func TestInitConfig_Defaults_AllFields(t *testing.T) {
 		t.Fatalf("Layout: expected %q, got %q", LayoutAuto, cfg.Layout)
 	}
 
-	if cfg.StateFlow != "" {
-		t.Fatalf("StateFlow: expected %q, got %q", "", cfg.StateFlow)
+	if cfg.Scenario.Enabled != true {
+		t.Fatalf("Scenario.Enabled: expected %v, got %v", true, cfg.Scenario.Enabled)
 	}
-	if cfg.StateStepSeconds != 0 {
-		t.Fatalf("StateStepSeconds: expected %d, got %d", 0, cfg.StateStepSeconds)
-	}
-	if cfg.StateStepCalls != 1 {
-		t.Fatalf("StateStepCalls: expected %d, got %d", 1, cfg.StateStepCalls)
-	}
-	if cfg.StateResetOnLast != false {
-		t.Fatalf("StateResetOnLast: expected %v, got %v", false, cfg.StateResetOnLast)
-	}
-	if cfg.StateIDParam != "id" {
-		t.Fatalf("StateIDParam: expected %q, got %q", "id", cfg.StateIDParam)
-	}
-	if cfg.BodyStates != "start,stop" {
-		t.Fatalf("BodyStates: expected %q, got %q", "start,stop", cfg.BodyStates)
+	if cfg.Scenario.Filename != "scenario.json" {
+		t.Fatalf("Scenario.Filename: expected %q, got %q", "scenario.json", cfg.Scenario.Filename)
 	}
 }
 
@@ -83,12 +67,8 @@ func TestInitConfig_Overrides_AllFields(t *testing.T) {
 	t.Setenv("DEBUG_ROUTES", "1")
 	t.Setenv("LAYOUT_MODE", "folders")
 
-	t.Setenv("STATE_FLOW", "requested,running*9,succeeded")
-	t.Setenv("STATE_STEP_SECONDS", "5")
-	t.Setenv("STATE_STEP_CALLS", "3")
-	t.Setenv("STATE_ID_PARAM", "scan_id")
-	t.Setenv("STATE_RESET_ON_LAST", "true")
-	t.Setenv("BODY_STATES", "created,started,finished")
+	t.Setenv("SCENARIO_ENABLED", "false")
+	t.Setenv("SCENARIO_FILENAME", "my-scenario.json")
 
 	cfg := initConfig()
 
@@ -120,24 +100,11 @@ func TestInitConfig_Overrides_AllFields(t *testing.T) {
 		t.Fatalf("Layout: expected %q, got %q", LayoutFolders, cfg.Layout)
 	}
 
-	// State machine overrides
-	if cfg.StateFlow != "requested,running*9,succeeded" {
-		t.Fatalf("StateFlow: expected %q, got %q", "requested,running*9,succeeded", cfg.StateFlow)
+	if cfg.Scenario.Enabled != false {
+		t.Fatalf("Scenario.Enabled: expected %v, got %v", false, cfg.Scenario.Enabled)
 	}
-	if cfg.StateStepSeconds != 5 {
-		t.Fatalf("StateStepSeconds: expected %d, got %d", 5, cfg.StateStepSeconds)
-	}
-	if cfg.StateStepCalls != 3 {
-		t.Fatalf("StateStepCalls: expected %d, got %d", 3, cfg.StateStepCalls)
-	}
-	if cfg.StateIDParam != "scan_id" {
-		t.Fatalf("StateIDParam: expected %q, got %q", "scan_id", cfg.StateIDParam)
-	}
-	if cfg.StateResetOnLast != true {
-		t.Fatalf("StateResetOnLast: expected %v, got %v", true, cfg.StateResetOnLast)
-	}
-	if cfg.BodyStates != "created,started,finished" {
-		t.Fatalf("BodyStates: expected %q, got %q", "created,started,finished", cfg.BodyStates)
+	if cfg.Scenario.Filename != "my-scenario.json" {
+		t.Fatalf("Scenario.Filename: expected %q, got %q", "my-scenario.json", cfg.Scenario.Filename)
 	}
 }
 
@@ -167,7 +134,7 @@ func TestInitConfig_BoolParsing_DebugRoutesVariants(t *testing.T) {
 	}
 }
 
-func TestInitConfig_BoolParsing_StateResetOnLastVariants(t *testing.T) {
+func TestInitConfig_BoolParsing_ScenarioEnabledVariants(t *testing.T) {
 	cases := []struct {
 		val  string
 		want bool
@@ -184,10 +151,10 @@ func TestInitConfig_BoolParsing_StateResetOnLastVariants(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.val, func(t *testing.T) {
-			t.Setenv("STATE_RESET_ON_LAST", tc.val)
+			t.Setenv("SCENARIO_ENABLED", tc.val)
 			cfg := initConfig()
-			if cfg.StateResetOnLast != tc.want {
-				t.Fatalf("STATE_RESET_ON_LAST=%q: expected %v, got %v", tc.val, tc.want, cfg.StateResetOnLast)
+			if cfg.Scenario.Enabled != tc.want {
+				t.Fatalf("SCENARIO_ENABLED=%q: expected %v, got %v", tc.val, tc.want, cfg.Scenario.Enabled)
 			}
 		})
 	}
