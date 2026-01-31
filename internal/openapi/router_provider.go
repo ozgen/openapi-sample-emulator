@@ -6,14 +6,11 @@ import (
 	"strings"
 )
 
-type Route struct {
-	Method     string
-	Swagger    string
-	Regex      *regexp.Regexp
-	SampleFile string
+type RouterProvider struct {
+	routes []Route
 }
 
-func BuildRoutes(spec *Spec) []Route {
+func NewRouterProvider(spec *Spec) IRouterProvider {
 	if spec == nil || spec.Doc3 == nil || spec.Doc3.Paths == nil {
 		return nil
 	}
@@ -34,18 +31,51 @@ func BuildRoutes(spec *Spec) []Route {
 			})
 		}
 	}
-	return out
+	return &RouterProvider{routes: out}
 }
 
-func FindRoute(routes []Route, method, path string) *Route {
+func (p *RouterProvider) FindRoute(method, path string) *Route {
 	method = strings.ToUpper(method)
-	for i := range routes {
-		r := &routes[i]
-		if r.Method == method && r.Regex.MatchString(path) {
-			return r
+
+	var best *Route
+	bestScore := -1
+
+	for i := range p.routes {
+		r := &p.routes[i]
+		if r.Method != method {
+			continue
+		}
+		if !r.Regex.MatchString(path) {
+			continue
+		}
+
+		score := p.routeSpecificityScore(r.Swagger)
+		if score > bestScore {
+			best = r
+			bestScore = score
 		}
 	}
-	return nil
+
+	return best
+}
+
+func (p *RouterProvider) GetRoutes() []Route {
+	return p.routes
+}
+
+func (p *RouterProvider) routeSpecificityScore(swaggerPath string) int {
+	parts := strings.Split(strings.Trim(swaggerPath, "/"), "/")
+	score := 0
+	for _, p := range parts {
+		if strings.HasPrefix(p, "{") && strings.HasSuffix(p, "}") {
+			score += 0 // param segment
+		} else {
+			score += 10
+		}
+	}
+
+	score += len(parts)
+	return score
 }
 
 func swaggerPathToSampleName(method, swaggerPath string) string {

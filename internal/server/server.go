@@ -24,35 +24,57 @@ type Config struct {
 }
 
 type Server struct {
-	cfg    Config
-	spec   *openapi.Spec
-	routes []openapi.Route
-	log    *logrus.Logger
+	cfg            Config
+	specProvider   openapi.ISpecProvider
+	routerProvider openapi.IRouterProvider
+	validator      openapi.IValidator
+	sampleProvider samples.ISampleProvider
+	log            *logrus.Logger
 
-	scenario samples.ScenarioResolver
+	scenario samples.IScenarioResolver
 }
 
 func New(cfg Config) (*Server, error) {
-	spec, err := openapi.LoadSpec(cfg.SpecPath)
+	log := logger.GetLogger()
+
+	specProvider, err := openapi.NewSpecProvider(cfg.SpecPath, log)
 	if err != nil {
 		return nil, err
 	}
-	routes := openapi.BuildRoutes(spec)
+
+	sp, ok := specProvider.(*openapi.SpecProvider)
+	if !ok {
+		return nil, fmt.Errorf("unexpected spec provider type: %T", specProvider)
+	}
+
+	routeProvider := openapi.NewRouterProvider(sp.GetSpec())
+	validator := openapi.NewValidator(specProvider)
 
 	if strings.TrimSpace(string(cfg.Layout)) == "" {
 		cfg.Layout = config.LayoutAuto
 	}
 
 	s := &Server{
-		cfg:    cfg,
-		spec:   spec,
-		routes: routes,
-		log:    logger.GetLogger(),
+		cfg:            cfg,
+		specProvider:   specProvider,
+		routerProvider: routeProvider,
+		validator:      validator,
+		log:            log,
+	}
+
+	providerCfg := samples.ProviderConfig{
+		BaseDir:          cfg.SamplesDir,
+		Layout:           cfg.Layout,
+		ScenarioEnabled:  config.Envs.Scenario.Enabled,
+		ScenarioFilename: config.Envs.Scenario.Filename,
 	}
 
 	if config.Envs.Scenario.Enabled {
 		s.scenario = samples.NewScenarioEngine()
+		providerCfg.Engine = s.scenario
 	}
+
+	s.sampleProvider = samples.NewSampleProvider(providerCfg, log)
 
 	return s, nil
 }
@@ -92,7 +114,7 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rt := openapi.FindRoute(s.routes, method, path)
+	rt := s.routerProvider.FindRoute(method, path)
 	if rt == nil {
 		utils.WriteJSON(w, 404, map[string]any{
 			"error":  "No route",
@@ -103,8 +125,8 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.cfg.ValidationMode == config.ValidationRequired {
-		if openapi.HasRequiredBodyParam(s.spec, rt.Swagger, rt.Method) {
-			empty, err := openapi.IsEmptyBody(r)
+		if s.validator.HasRequiredBodyParam(rt.Swagger, rt.Method) {
+			empty, err := s.validator.IsEmptyBody(r)
 			if err != nil {
 				utils.WriteJSON(w, 400, map[string]any{"error": "Bad Request", "details": err.Error()})
 				return
@@ -119,20 +141,15 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp, err := samples.LoadResolved(
-		s.cfg.SamplesDir,
+	resp, err := s.sampleProvider.ResolveAndLoad(
 		method,
 		rt.Swagger,
 		path,
 		rt.SampleFile,
-		s.cfg.Layout,
-		config.Envs.Scenario.Enabled,
-		config.Envs.Scenario.Filename,
-		s.scenario,
 	)
 	if err != nil {
 		if s.cfg.FallbackMode == config.FallbackOpenAPIExample {
-			if body, ok := openapi.TryGetExampleBody(s.spec, rt.Swagger, rt.Method); ok {
+			if body, ok := s.specProvider.TryGetExampleBody(rt.Swagger, rt.Method); ok {
 				w.Header().Set("content-type", "application/json")
 				w.WriteHeader(200)
 				_, _ = w.Write(body)
@@ -162,7 +179,7 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) DebugRoutes() string {
 	out := ""
-	for _, r := range s.routes {
+	for _, r := range s.routerProvider.GetRoutes() {
 		out += fmt.Sprintf("%s %s -> %s\n", r.Method, r.Swagger, r.SampleFile)
 	}
 	return out
