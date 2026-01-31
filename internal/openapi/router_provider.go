@@ -36,13 +36,42 @@ func NewRouterProvider(spec *Spec) IRouterProvider {
 
 func (p *RouterProvider) FindRoute(method, path string) *Route {
 	method = strings.ToUpper(method)
+
+	var best *Route
+	bestScore := -1
+
 	for i := range p.routes {
 		r := &p.routes[i]
-		if r.Method == method && r.Regex.MatchString(path) {
-			return r
+		if r.Method != method {
+			continue
+		}
+		if !r.Regex.MatchString(path) {
+			continue
+		}
+
+		score := routeSpecificityScore(r.Swagger)
+		if score > bestScore {
+			best = r
+			bestScore = score
 		}
 	}
-	return nil
+
+	return best
+}
+
+func routeSpecificityScore(swaggerPath string) int {
+	parts := strings.Split(strings.Trim(swaggerPath, "/"), "/")
+	score := 0
+	for _, p := range parts {
+		if strings.HasPrefix(p, "{") && strings.HasSuffix(p, "}") {
+			score += 0 // param segment
+		} else {
+			score += 10
+		}
+	}
+
+	score += len(parts)
+	return score
 }
 
 func (p *RouterProvider) GetRoutes() []Route {
