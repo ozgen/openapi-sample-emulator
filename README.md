@@ -276,6 +276,7 @@ This tool is **not intended** to:
 
 ## License
 
-MIT
+Copyright (C) 2009-2026 [Greenbone AG](https://www.greenbone.net/)
 
+Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 ---
