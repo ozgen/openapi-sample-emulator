@@ -1,4 +1,4 @@
-name: CI openapi-sample-emulator
+name: CI openapi-emulator
 
 on:
   push:

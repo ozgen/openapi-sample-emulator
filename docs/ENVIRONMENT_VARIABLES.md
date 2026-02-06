@@ -1,6 +1,6 @@
 # Environment Variables
 
-This document lists the environment variables used by **openapi-sample-emulator** and their purpose.
+This document lists the environment variables used by **openapi-emulator** and their purpose.
 Defaults are shown in parentheses.
 
 ---

@@ -1,4 +1,4 @@
-name: Lint openapi-sample-emulator
+name: Lint openapi-emulator
 
 on:
   push:

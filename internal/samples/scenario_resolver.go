@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ozgen/gvm-openapi-emulator/logger"
+	"github.com/ozgen/openapi-emulator/logger"
 	"github.com/sirupsen/logrus"
 )
 

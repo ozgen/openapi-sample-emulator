@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ozgen/gvm-openapi-emulator/config"
-	"github.com/ozgen/gvm-openapi-emulator/internal/openapi"
-	"github.com/ozgen/gvm-openapi-emulator/internal/samples"
-	"github.com/ozgen/gvm-openapi-emulator/logger"
-	"github.com/ozgen/gvm-openapi-emulator/utils"
+	"github.com/ozgen/openapi-emulator/config"
+	"github.com/ozgen/openapi-emulator/internal/openapi"
+	"github.com/ozgen/openapi-emulator/internal/samples"
+	"github.com/ozgen/openapi-emulator/logger"
+	"github.com/ozgen/openapi-emulator/utils"
 	"github.com/sirupsen/logrus"
 )
 
