@@ -17,8 +17,8 @@ It is designed for **local development**, **integration testing**, and **CI envi
 Clone the repository and run locally:
 
 ```bash
-git clone https://github.com/ozgen/gvm-openapi-emulator.git
-cd gvm-openapi-emulator
+git clone https://github.com/ozgen/openapi-emulator.git
+cd openapi-emulator
 make run
 ```
 
